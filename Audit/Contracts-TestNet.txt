@@ -12,8 +12,7 @@ https://testnet.bscscan.com/address/0x29c8e9ff7510c4A890EC47A3e95b29052877F46c#c
 
 ——————————————————————————
 
-GAUGEFACTORY 
-0x033ce32e0dCA84C839212160006fFeD495a57520
+GAUGEFACTORY: 0x033ce32e0dCA84C839212160006fFeD495a57520
 
 https://testnet.bscscan.com/address/0x033ce32e0dCA84C839212160006fFeD495a57520#code
 
