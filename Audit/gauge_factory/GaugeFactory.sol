@@ -43,10 +43,10 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
     address[] public _tokens;
     mapping(address => address) public gauges; // token => gauge
     mapping(address => bool) public gaugeStatus; // token => bool : false = deprecated
-    mapping(address => bool) public gaugeExists;
-    uint256 public pokeDelay = 30 days;
+    mapping(address => bool) public gaugeExists; // token => bool : ture = exists
+    uint256 public pokeDelay = 30 days; // next auto poke in 30 days if you dont vote only farm
 
-    // Add Guage to Bribe Mapping
+    // Add Gauge to Bribe Mapping
     mapping(address => address) public bribes; // gauge => bribes
     mapping(address => uint256) public weights; // token => weight
     mapping(address => mapping(address => uint256)) public votes; // msg.sender => votes
@@ -227,8 +227,8 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
         );
         _tokens.push(_tokenLP);
         maxVotesToken[_tokens[_tokens.length - 1]] = _maxVotesToken;
-        gaugeStatus[_tokenLP] = true; // set gauge to activ
-        gaugeExists[gauges[_tokenLP]] = true; // has the gauge ever existed
+        gaugeStatus[_tokenLP] = true; // set gauge to active
+        gaugeExists[gauges[_tokenLP]] = true; // Check if the gauge ever existed
 
         // Deploy Bribe
         address _bribe = IBaseV1BribeFactory(bribeFactory).createBribe(
