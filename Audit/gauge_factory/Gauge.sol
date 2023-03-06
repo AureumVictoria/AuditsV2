@@ -269,7 +269,7 @@ contract Gauge is ReentrancyGuard {
                     ref = IReferrals(referralContract).getSponsor(ref);
                     i++;
                 } else {
-                    i += 30051999;
+                    break;
                 }
             }
             if (remainingRefReward > 0) {
