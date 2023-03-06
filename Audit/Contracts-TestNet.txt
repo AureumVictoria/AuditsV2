@@ -33,11 +33,6 @@ https://testnet.bscscan.com/address/0xdB9a138e69ea6FA6f72F0f676E1ae8965EB4cf9F#c
 
 ——————————————————————————
 
-USDFIROUTERV2 
-0x4A078C9299E8A982dc8cA206C321Dd8FC0a590f8
-
-——————————————————————————
-
 USDFIRouterV2:
 0x4A078C9299E8A982dc8cA206C321Dd8FC0a590f8
 
