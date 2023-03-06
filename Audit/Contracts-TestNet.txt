@@ -89,3 +89,8 @@ referral fee: 200 = 2%
 test feeDAO address 0x7Fb3eA251F4E8cd187c60dAe90373926f87FAadb
 
 ——————————————————————————
+
+SwapLibrary (for USDFIRouterV2)
+0xee699E30EE7a982E35AC0E2A3CA6Bc684F9C6FFf
+
+https://testnet.bscscan.com/address/0xee699E30EE7a982E35AC0E2A3CA6Bc684F9C6FFf#code
