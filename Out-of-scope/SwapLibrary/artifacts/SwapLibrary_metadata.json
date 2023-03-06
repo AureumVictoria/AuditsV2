@@ -1,0 +1,508 @@
+{
+	"compiler": {
+		"version": "0.8.15+commit.e14f2714"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_router",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [],
+				"name": "factory",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amountIn",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenOut",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "getAmountOut",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenOut",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "getMinimumValue",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenA",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenB",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "getNormalizedReserves",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "reserveA",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "reserveB",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenOut",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "getSample",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amountIn",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenOut",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "getTradeDiff",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "a",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "b",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amountIn",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "pair",
+						"type": "address"
+					}
+				],
+				"name": "getTradeDiff",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "a",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "b",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amountIn",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenOut",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "getTradeDiff2",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "a",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "b",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amountIn",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenOut",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "getTradeDiff3",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "a",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "b",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amountIn",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenIn",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenOut",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "sample",
+						"type": "uint256"
+					}
+				],
+				"name": "getTradeDiffSimple",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "a",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "b",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenA",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenB",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "stable",
+						"type": "bool"
+					}
+				],
+				"name": "pairFor",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "pair",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "router",
+				"outputs": [
+					{
+						"internalType": "contract IRouter",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenA",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenB",
+						"type": "address"
+					}
+				],
+				"name": "sortTokens",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "token0",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "token1",
+						"type": "address"
+					}
+				],
+				"stateMutability": "pure",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"pairFor(address,address,bool)": {
+					"details": "Calculates the CREATE2 address for a pair without making any external calls."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"SwapLibrary.sol": "SwapLibrary"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"IFactory.sol": {
+			"keccak256": "0x3b6ad4b6b1ea86842ecb90404a50b4a0ac29119efa7b732f7107828c0e877d90",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://fc727dbccd815569ce7ee7129bc621f6ed72c3e6a6a41f4bc4510263f7575677",
+				"dweb:/ipfs/Qma4Jd4kJmAsgQEbCzGWFt1w2GqxAvTiw4b6AhJoXkEJfh"
+			]
+		},
+		"IPair.sol": {
+			"keccak256": "0x61199fdd4707986dc5d9a045dfec0078e5fc2bc39c77001b9113066e3b6158d1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://260576038fc73041af322d134e306a38623ebef4bbfcc71e6a2f291f32ba2027",
+				"dweb:/ipfs/QmXDJJ6MieFneR9Lgde2CgkUaZCXgBN3r5vtk8JXM8QkYd"
+			]
+		},
+		"IRouter.sol": {
+			"keccak256": "0xc3d8272632e1b569522fbeb34917046b61c021e4cece25b780c6b001027e19bc",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://accf8ca0cd540886493b35af16e6d2d4b2b4fed2ba2a6035961f8770945db2c1",
+				"dweb:/ipfs/QmSArzJVUJJrQso1bpjQKcX9A4rnNWYpyCd5Rfg4pwSPoZ"
+			]
+		},
+		"Math.sol": {
+			"keccak256": "0xd8609551b6d4b44ce70cc2f78dcb8b9f8453bccca3eb2355ba7c2b9b2752ffe8",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://c7c86b8f5e9973162005c2a09ee40c1dc54786cbf9b4ccbb8da57e5a79aa4c7e",
+				"dweb:/ipfs/QmcX4zK9YGKULCWscWtWLwXmeMuGUdeRawG4H77ha2ovUP"
+			]
+		},
+		"SwapLibrary.sol": {
+			"keccak256": "0x1ea19d030d74ca025f6f313ff9d067036e5056e029ff0d3a3e2050b966484e75",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://55fc61eb8a9d80f37604b463ee97cde2c9ddd0dc3a9f55ef4dcad42c6b52ae97",
+				"dweb:/ipfs/QmUJLTSwdjHuxVrcu2f26GWTDC74z4XcpYGoHcmCNnaZRk"
+			]
+		}
+	},
+	"version": 1
+}
