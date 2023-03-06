@@ -42,7 +42,7 @@ contract BaseV1Pair {
     address public immutable fees;
     address immutable factory;
 
-    // Structure to capture time period obervations every 30 minutes, used for local oracles
+    // Structure to capture time period observations every 30 minutes, used for local oracles
     struct Observation {
         uint256 timestamp;
         uint256 reserve0Cumulative;
@@ -482,8 +482,8 @@ contract BaseV1Pair {
         uint256 _liquidity = balanceOf[address(this)];
 
         uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
-        amount0 = (_liquidity * _balance0) / _totalSupply; // using balances ensures pro-rata distribution
-        amount1 = (_liquidity * _balance1) / _totalSupply; // using balances ensures pro-rata distribution
+        amount0 = (_liquidity * _balance0) / _totalSupply; // using balances ensures proportionate distribution
+        amount1 = (_liquidity * _balance1) / _totalSupply; // using balances ensures proportionate distribution
         require(amount0 > 0 && amount1 > 0, "ILB"); // BaseV1: INSUFFICIENT_LIQUIDITY_BURNED
         _burn(address(this), _liquidity);
         _safeTransfer(_token0, to, amount0);
