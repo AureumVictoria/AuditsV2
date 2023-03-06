@@ -37,14 +37,14 @@ contract Bribe is ReentrancyGuard, Ownable {
     address public gaugeFactory;
     address public bribeFactory;
 
-    //user -> reward token -> lastTime
+    // user -> reward token -> lastTime
     mapping(address => mapping(address => uint256)) public userTimestamp;
 
-    //uint256 private _totalSupply;
+    // uint256 private _totalSupply;
     mapping(uint256 => uint256) public _totalSupply;
     mapping(address => mapping(uint256 => uint256)) public _balances; //user -> timestamp -> amount
 
-    //outputs the fee variables.
+    // outputs the fee variables.
     uint256 public referralFee;
     address public referralContract;
     uint256[] public refLevelPercent = [6000, 3000, 1000];
@@ -100,7 +100,7 @@ contract Bribe is ReentrancyGuard, Ownable {
         return _balances[_voter][_timestamp];
     }
 
-    // get last deposit available balance (getNextEpochStart)
+    // Get last deposit available balance (getNextEpochStart)
     function balanceOf(address _voter) public view returns (uint256) {
         uint256 _timestamp = getEpoch() + 1;
         return _balances[_voter][_timestamp];
@@ -306,7 +306,7 @@ contract Bribe is ReentrancyGuard, Ownable {
         }
     }
 
-    // same like getRewardForOwnerToOtherOwner but with Single Token claim (in case 1 is broken or pause)
+    // Same like getRewardForOwnerToOtherOwner but with Single Token claim (in case one is broken or pause)
     function getRewardForOwnerToOtherOwnerSingleToken(
         address _voter,
         address _receiver,
@@ -402,14 +402,14 @@ contract Bribe is ReentrancyGuard, Ownable {
         rewardTokens.push(_rewardsToken);
     }
 
-    // set whitlist for other receiver in getRewardForOwnerToOtherOwner
+    // Set whitelist for other receiver in getRewardForOwnerToOtherOwner
     function setWhitelisted(address _receiver, bool _whitlist) public {
         whitelisted[msg.sender][_receiver] = _whitlist;
     }
 
     /* ========== REFERRAL FUNCTIONS ========== */
 
-    // update the referral Variables
+    // Update the referral Variables
     function updateReferral(
         address _referralsContract,
         uint256 _referralFee,
