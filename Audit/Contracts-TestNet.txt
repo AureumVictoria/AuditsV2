@@ -52,6 +52,7 @@ sAMM-STABLE/Cake - Bribe
 .
 
 Out-of-scope Testnet Contracts (perhaps necessary to understand a logic otherwise ignore it)
+(https://github.com/AureumVictoria/AuditsV2/tree/main/Out-of-scope)
 
 VEVOTEPROXY 
 0xdB9a138e69ea6FA6f72F0f676E1ae8965EB4cf9F
