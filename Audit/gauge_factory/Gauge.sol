@@ -81,7 +81,7 @@ contract Gauge is ReentrancyGuard {
         referralFee = IGaugeFactory(gaugeFactory).baseReferralFee();
     }
 
-    // claim the fees from the LP token and Bribe to the voter
+    // Claim the fees from the LP token and Bribe to the voter
     function claimVotingFees()
         external
         nonReentrant
@@ -165,7 +165,7 @@ contract Gauge is ReentrancyGuard {
         derivedSupply = derivedSupply + _derivedBalance;
     }
 
-    // your erarnd rewards (without referrals deduction)
+    // Your earned rewards (without referrals deduction)
     function earned(address account) public view returns (uint256) {
         return
             ((derivedBalances[account] *
@@ -173,12 +173,12 @@ contract Gauge is ReentrancyGuard {
             rewards[account];
     }
 
-    // how many rewards will be distributed this epoch
+    // How many rewards will be distributed this epoch
     function getRewardForDuration() external view returns (uint256) {
         return rewardRate * DURATION;
     }
 
-    // deposit LP token
+    // Deposit LP token
     function deposit(uint256 amount) external {
         _deposit(amount, msg.sender);
     }
@@ -204,7 +204,7 @@ contract Gauge is ReentrancyGuard {
         emit Staked(account, userAmount);
     }
 
-    // withdraw LP token
+    // Withdraw LP token
     function withdraw(uint256 amount) external {
         _withdraw(amount);
     }
@@ -221,17 +221,17 @@ contract Gauge is ReentrancyGuard {
         emit Withdrawn(msg.sender, amount);
     }
 
-    // claim your rewards
+    // Claim your rewards
     function getReward() external {
         getRewardForOwnerToOtherOwner(msg.sender, msg.sender);
     }
 
-    // gif a owner the erarnd rewards
+    // Give the owner the earned rewards
     function getRewardForOwner(address _owner) external {
         getRewardForOwnerToOtherOwner(_owner, _owner);
     }
 
-    // get the reward from a owner to a whistlistet address or self
+    // Get the reward from a owner to a whistlistet address or self
     function getRewardForOwnerToOtherOwner(address _owner, address _receiver)
         public
         nonReentrant
@@ -284,7 +284,7 @@ contract Gauge is ReentrancyGuard {
         }
     }
 
-    // notify rewards for the LP depositer
+    // Notify rewards for the LP depositer
     function notifyRewardAmount(uint256 reward)
         external
         onlyDistribution
@@ -311,7 +311,7 @@ contract Gauge is ReentrancyGuard {
         emit RewardAdded(reward);
     }
 
-    // update the rewards
+    // Update the rewards
     modifier updateReward(address account) {
         if (block.timestamp > IGaugeFactory(gaugeFactory).nextPoke(account)) {
             IGaugeFactory(gaugeFactory).poke(account);
@@ -328,7 +328,7 @@ contract Gauge is ReentrancyGuard {
         }
     }
 
-    // Update the referral Variables
+    // Update the referral variables
     function updateReferral(
         address _referralsContract,
         uint256 _referralFee,
