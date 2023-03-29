@@ -5,13 +5,15 @@
  * @author - <USDFI TRUST>
  * for the USDFI Trust
  *
- * SPDX-License-Identifier: GNU GPLv2
+ * SPDX-License-Identifier: Business Source License 1.1
  *
  **/
 
 pragma solidity =0.8.17;
 
-contract ProtocolGovernance {
+import "./IProtocolGovernance.sol";
+
+contract ProtocolGovernance is IProtocolGovernance {
     /// @notice governance address for the governance contract
     address public governance;
     address public pendingGovernance;
@@ -21,7 +23,7 @@ contract ProtocolGovernance {
 
     // Base fee variables
     address public baseReferralsContract;
-    uint256 public baseReferralFee;
+    uint256 public baseReferralFee = 2000;
     address public mainRefFeeReceiver;
 
     /**
@@ -31,6 +33,8 @@ contract ProtocolGovernance {
     function setGovernance(address _governance) external {
         require(msg.sender == governance, "setGovernance: !gov");
         pendingGovernance = _governance;
+
+        emit SetGovernance(pendingGovernance);
     }
 
     /**
@@ -42,6 +46,8 @@ contract ProtocolGovernance {
             "acceptGovernance: !pendingGov"
         );
         governance = pendingGovernance;
+
+        emit AcceptGovernance(governance);
     }
 
     /**
@@ -53,12 +59,14 @@ contract ProtocolGovernance {
         require(msg.sender == governance, "!gov");
         admin = _admin;
         voter = _voter;
+        emit SetAdminAndVoter(admin, voter);
     }
 
     // Set Stable-miner
     function setStableMiner(address _stableMiner) external {
         require(msg.sender == governance || msg.sender == admin, "!gov");
         stableMiner = _stableMiner;
+        emit SetStableMiner(stableMiner);
     }
 
     // Update the base referral contract and base referral fee and the main referral fee receiver
@@ -71,9 +79,24 @@ contract ProtocolGovernance {
             (msg.sender == governance || msg.sender == admin),
             "!gov or !admin"
         );
-        require((_baseReferralFee < 1000), "must be lower 10%");
+        require((_baseReferralFee <= 10000), "must be lower 10%");
         baseReferralsContract = _referralsContract;
         baseReferralFee = _baseReferralFee;
         mainRefFeeReceiver = _mainRefFeeReceiver;
+        emit UpdateBaseReferrals(
+            baseReferralsContract,
+            baseReferralFee,
+            mainRefFeeReceiver
+        );
     }
+
+    event UpdateBaseReferrals(
+        address referralContract,
+        uint256 referralFee,
+        address refLevelPercent
+    );
+    event SetStableMiner(address stableMiner);
+    event SetAdminAndVoter(address admin, address voter);
+    event SetGovernance(address pendingGovernance);
+    event AcceptGovernance(address governance);
 }

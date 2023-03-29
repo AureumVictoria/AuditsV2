@@ -15,18 +15,19 @@ import "./Gauge.sol";
 import "./IBaseBribeFactory.sol";
 import "./ProtocolGovernance.sol";
 import "./IStableMiner.sol";
+import "./IGaugeFactory.sol";
 
-contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
+contract GaugeFactory is IGaugeFactory, ProtocolGovernance, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public veProxy;
-    IERC20 public STABLE;
+    IERC20 public immutable STABLE;
 
-    address public bribeFactory; // Address for bribeFactory
+    address public immutable bribeFactory; // Address for bribeFactory
     uint256 public totalWeight;
 
     // Time delays
-    uint256 public delay = 7 days;
+    uint256 public immutable delay = 1 weeks;
     uint256 public lastDistribute;
     mapping(address => uint256) public lastVote; // msg.sender => time of users last vote
     mapping(address => uint256) public nextPoke; // msg.sender => time of users next poke
@@ -44,7 +45,7 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
     mapping(address => address) public gauges; // token => gauge
     mapping(address => bool) public gaugeStatus; // token => bool : false = deprecated
     mapping(address => bool) public gaugeExists; // token => bool : ture = exists
-    uint256 public pokeDelay = 30 days; // next auto poke in 30 days if you dont vote only farm
+    uint256 public pokeDelay = 4 weeks; // next auto poke in 30 days if you dont vote only farm
 
     // Add Gauge to Bribe Mapping
     mapping(address => address) public bribes; // gauge => bribes
@@ -52,6 +53,8 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
     mapping(address => mapping(address => uint256)) public votes; // msg.sender => votes
     mapping(address => address[]) public tokenVote; // msg.sender => token
     mapping(address => uint256) public usedWeights; // msg.sender => total voting weight of user
+
+    uint256 internal immutable divisor = 100000;
 
     // Modifiers
     modifier hasVoted(address voter) {
@@ -72,13 +75,17 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
         address _veProxy,
         address _bribeFactory,
         address _stableMiner,
-        uint256 _startTimestamp
+        uint256 _startTimestamp,
+        address _baseReferralsContract,
+        address _mainRefFeeReceiver
     ) public {
         STABLE = IERC20(_stable);
         veProxy = IERC20(_veProxy);
         bribeFactory = _bribeFactory;
         stableMiner = _stableMiner;
         lastDistribute = _startTimestamp;
+        baseReferralsContract = _baseReferralsContract;
+        mainRefFeeReceiver = _mainRefFeeReceiver;
         governance = msg.sender;
         admin = msg.sender;
     }
@@ -106,7 +113,6 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
         _reset(_user);
     }
 
-    // Reset votes to 0
     function _reset(address _owner) internal {
         address[] storage _tokenVote = tokenVote[_owner];
         uint256 _tokenVoteCnt = _tokenVote.length;
@@ -124,6 +130,7 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
                     _owner
                 );
                 votes[_owner][_token] = 0;
+                usedWeights[_owner] = 0;
             }
         }
 
@@ -166,6 +173,7 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
         uint256 _weight = veProxy.balanceOf(_owner);
         uint256 _totalVoteWeight = 0;
         uint256 _usedWeight = 0;
+        uint256 _totalWeight = totalWeight;
 
         for (uint256 i = 0; i < _tokenCnt; i++) {
             _totalVoteWeight = _totalVoteWeight + _weights[i];
@@ -178,7 +186,7 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
 
             if (_gauge != address(0x0) && gaugeStatus[_token]) {
                 _usedWeight = _usedWeight + _tokenWeight;
-                totalWeight = totalWeight + _tokenWeight;
+                _totalWeight = _totalWeight + _tokenWeight;
                 weights[_token] = weights[_token] + _tokenWeight;
                 tokenVote[_owner].push(_token);
                 votes[_owner][_token] = _tokenWeight;
@@ -187,6 +195,7 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
             }
         }
 
+        totalWeight = _totalWeight;
         usedWeights[_owner] = _usedWeight;
     }
 
@@ -214,7 +223,7 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
         returns (address)
     {
         require(gauges[_tokenLP] == address(0x0), "exists");
-        require(_maxVotesToken <= 100000, "more then 100%");
+        require(_maxVotesToken <= divisor, "more then 100%");
         require(
             msg.sender == governance || msg.sender == admin,
             "!gov or !admin"
@@ -231,8 +240,7 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
         gaugeExists[gauges[_tokenLP]] = true; // Check if the gauge ever existed
 
         // Deploy Bribe
-        address _bribe = IBaseV1BribeFactory(bribeFactory).createBribe(
-            governance,
+        address _bribe = IBribeFactory(bribeFactory).createBribe(
             _token0,
             _token1
         );
@@ -269,30 +277,50 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
         return _tokens.length;
     }
 
+    // Used to pre-distribute tokens according to their weights for a new Epoch
+    // It calculates the maximum votes for each token, sets the locked weights of the tokens, and creates a new STABLE token
+    // It also updates the locked balance and last distribution time. The function emits an event with the updated values.
     function preDistribute() external nonReentrant hasDistribute {
         uint256 _lockedTotalWeight = totalWeight;
+        uint256 _divisor = divisor;
+
+        uint256[] memory _updatedLockedWeights = new uint256[](_tokens.length); // Create an array to store updated lockedWeights
+
         for (uint256 i = 0; i < _tokens.length; i++) {
-            lockedWeights[_tokens[i]] = weights[_tokens[i]];
+            address _token = _tokens[i];
+            uint256 _currentWeight = weights[_token];
+            _updatedLockedWeights[i] = _currentWeight; // Store the updated weight in memory
 
-            uint256 maxVotes = (_lockedTotalWeight *
-                maxVotesToken[_tokens[i]]) / 100000;
+            uint256 maxVotes = (_lockedTotalWeight * maxVotesToken[_token]) /
+                _divisor;
 
-            if (lockedWeights[_tokens[i]] >= maxVotes) {
-                uint256 divOldNewVotes = lockedWeights[_tokens[i]] - maxVotes;
+            if (_updatedLockedWeights[i] >= maxVotes) {
+                uint256 divOldNewVotes = _updatedLockedWeights[i] - maxVotes;
 
-                lockedWeights[_tokens[i]] = maxVotes;
+                _updatedLockedWeights[i] = maxVotes;
 
                 _lockedTotalWeight = _lockedTotalWeight - divOldNewVotes;
             }
-            hasDistributed[_tokens[i]] = false;
+            lockedWeights[_token] = _updatedLockedWeights[i];
+            hasDistributed[_token] = false;
         }
+
         lockedTotalWeight = _lockedTotalWeight;
         IStableMiner(stableMiner).createNewSTABLE();
         lockedBalance = STABLE.balanceOf(address(this));
         lastDistribute = lastDistribute + delay; // compensates for slight delays by the trigger
         epoch++;
+
+        emit PreDistribute(
+            epoch,
+            lockedTotalWeight,
+            lockedBalance,
+            lastDistribute
+        );
     }
 
+    // distributes rewards to token gauges based on their weight.
+    // It takes in two parameters, a start and an end index, which determine the range of tokens to be distributed
     function distribute(uint256 _start, uint256 _end) public nonReentrant {
         require(_start < _end, "bad _start");
         require(_end <= _tokens.length, "bad _end");
@@ -322,9 +350,11 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
             "!gov or !admin"
         );
         veProxy = IERC20(_veProxy);
+
+        emit UpdateVeProxy(_veProxy);
     }
 
-    // Update the poke delay
+    // Update the poke delay for auto poke
     function updatePokeDelay(uint256 _pokeDelay) public {
         require(
             (msg.sender == governance ||
@@ -333,52 +363,40 @@ contract GaugeFactory is ProtocolGovernance, ReentrancyGuard {
             "!gov or !admin"
         );
         pokeDelay = _pokeDelay;
+
+        emit UpdatePokeDelay(pokeDelay);
     }
 
     // Update the max votes peer token
-    function updateMaxVotesToken(uint256 i, uint256 _maxVotesToken) public {
+    function updateMaxVotesToken(uint256 ID, uint256 _maxVotesToken) public {
         require(
             (msg.sender == governance ||
                 msg.sender == admin ||
                 msg.sender == voter),
             "!gov or !admin"
         );
-        require(_maxVotesToken <= 100000, "more then 100%");
-        maxVotesToken[_tokens[i]] = _maxVotesToken;
-    }
+        require(_maxVotesToken <= divisor, "more then 100%");
+        maxVotesToken[_tokens[ID]] = _maxVotesToken;
 
-    // Update the referral details in gauge / bribe
-    function updateReferrals(
-        address _gauge,
-        address _referralsContract,
-        uint256 _referralFee,
-        uint256[] memory _refLevelPercent
-    ) public {
-        require(
-            (msg.sender == governance ||
-                msg.sender == admin ||
-                msg.sender == voter),
-            "!gov or !admin"
-        );
-
-        uint256 i = 0;
-        uint256 requestedRefLevelReward = 0;
-        while (i < _refLevelPercent.length) {
-            requestedRefLevelReward =
-                requestedRefLevelReward +
-                _refLevelPercent[i];
-            i++;
-        }
-        require(requestedRefLevelReward == 10000, "must be 10000 = 100%");
-
-        Gauge(_gauge).updateReferral(
-            _referralsContract,
-            _referralFee,
-            _refLevelPercent
-        );
+        emit UpdateMaxVotesToken(ID, _maxVotesToken);
     }
 
     event GaugeAdded(address tokenLP);
     event GaugeDeprecated(address tokenLP);
     event GaugeResurrected(address tokenLP);
+    event UpdateReferrals(
+        address Contract,
+        address referralsContract,
+        uint256 referralFee,
+        uint256[] refLevelPercent
+    );
+    event UpdateMaxVotesToken(uint256 TokenID, uint256 maxVotesToken);
+    event UpdatePokeDelay(uint256 pokeDelay);
+    event UpdateVeProxy(address newProxy);
+    event PreDistribute(
+        uint256 indexed epoch,
+        uint256 lockedTotalWeight,
+        uint256 lockedBalance,
+        uint256 lastDistribute
+    );
 }

@@ -18,18 +18,18 @@ import "./IBasePair.sol";
 import "./IBaseFactory.sol";
 import "./IBribe.sol";
 import "./IGaugeFactory.sol";
+import "./ProtocolGovernance.sol";
 import "./IReferrals.sol";
+import "./IGauge.sol";
 
-contract Gauge is ReentrancyGuard {
+contract Gauge is IGauge, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    IERC20 public STABLE;
-
+    IERC20 public immutable STABLE;
     IERC20 public immutable TOKEN;
-    address private token;
-    address public immutable DISTRIBUTION;
-    uint256 public constant DURATION = 7 days;
+    address private immutable token;
 
+    uint256 public constant DURATION = 1 weeks;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
     uint256 public lastUpdateTime;
@@ -38,7 +38,7 @@ contract Gauge is ReentrancyGuard {
     uint256 public fees0;
     uint256 public fees1;
 
-    address public gaugeFactory;
+    address public immutable gaugeFactory;
     address public referralContract;
 
     mapping(address => mapping(address => bool)) public whitelisted;
@@ -48,11 +48,13 @@ contract Gauge is ReentrancyGuard {
      * @dev Outputs the fee variables.
      */
     uint256 public referralFee;
-    uint256[] public refLevelPercent = [6000, 3000, 1000];
+    uint256[] public refLevelPercent = [60000, 30000, 10000];
+
+    uint256 internal divisor = 100000;
 
     modifier onlyDistribution() {
         require(
-            msg.sender == DISTRIBUTION,
+            msg.sender == gaugeFactory,
             "Caller is not RewardsDistribution contract"
         );
         _;
@@ -76,9 +78,9 @@ contract Gauge is ReentrancyGuard {
         TOKEN = IERC20(_token);
         token = _token;
         gaugeFactory = _gaugeFactory;
-        DISTRIBUTION = msg.sender;
-        referralContract = IGaugeFactory(gaugeFactory).baseReferralsContract();
-        referralFee = IGaugeFactory(gaugeFactory).baseReferralFee();
+        referralContract = IProtocolGovernance(gaugeFactory)
+            .baseReferralsContract();
+        referralFee = IProtocolGovernance(gaugeFactory).baseReferralFee();
     }
 
     // Claim the fees from the LP token and Bribe to the voter
@@ -95,8 +97,8 @@ contract Gauge is ReentrancyGuard {
         returns (uint256 claimed0, uint256 claimed1)
     {
         (claimed0, claimed1) = IBasePair(address(TOKEN)).claimFees();
-        address bribe = IGaugeFactory(gaugeFactory).bribes(address(this));
         if (claimed0 > 0 || claimed1 > 0) {
+            address bribe = IGaugeFactory(gaugeFactory).bribes(address(this));
             uint256 _fees0 = fees0 + claimed0;
             uint256 _fees1 = fees1 + claimed1;
             (address _token0, address _token1) = IBasePair(address(TOKEN))
@@ -147,6 +149,7 @@ contract Gauge is ReentrancyGuard {
                 1e18) / derivedSupply);
     }
 
+    // The derivedBalance function calculates the derived balance of an account, which is used to determine the amount of rewards earned by the account.
     function derivedBalance(address account) public view returns (uint256) {
         if (IGaugeFactory(gaugeFactory).weights(token) == 0) return 0;
         uint256 _balance = _balances[account];
@@ -157,12 +160,14 @@ contract Gauge is ReentrancyGuard {
         return Math.min(_derived + _adjusted, _balance);
     }
 
+    // The kick function updates the derived balance of an account and the total derived supply of the contract
     function kick(address account) public {
         uint256 _derivedBalance = derivedBalances[account];
         derivedSupply = derivedSupply - _derivedBalance;
         _derivedBalance = derivedBalance(account);
         derivedBalances[account] = _derivedBalance;
         derivedSupply = derivedSupply + _derivedBalance;
+        emit Kick(account);
     }
 
     // Your earned rewards (without referrals deduction)
@@ -192,16 +197,15 @@ contract Gauge is ReentrancyGuard {
         nonReentrant
         updateReward(account)
     {
+        require(account != address(0), "cannot deposit to address 0");
         require(amount > 0, "deposit(Gauge): cannot stake 0");
 
-        uint256 userAmount = amount;
-
-        _balances[account] = _balances[account] + userAmount;
-        _totalSupply = _totalSupply + userAmount;
+        _balances[account] = _balances[account] + amount;
+        _totalSupply = _totalSupply + amount;
 
         TOKEN.safeTransferFrom(msg.sender, address(this), amount);
 
-        emit Staked(account, userAmount);
+        emit Staked(account, amount);
     }
 
     // Withdraw LP token
@@ -246,10 +250,10 @@ contract Gauge is ReentrancyGuard {
                     "not owner or whitelisted"
                 );
             }
-
+            uint256 _divisor = divisor;
             rewards[_owner] = 0;
 
-            uint256 refReward = (reward * referralFee) / 10000;
+            uint256 refReward = (reward * referralFee) / _divisor;
             uint256 remainingRefReward = refReward;
 
             STABLE.safeTransfer(_receiver, reward - refReward);
@@ -261,7 +265,7 @@ contract Gauge is ReentrancyGuard {
             while (i < refLevelPercent.length && refLevelPercent[i] > 0) {
                 if (ref != IReferrals(referralContract).membersList(0)) {
                     uint256 refFeeAmount = (refReward * refLevelPercent[i]) /
-                        10000;
+                        _divisor;
                     remainingRefReward = remainingRefReward - refFeeAmount;
                     STABLE.safeTransfer(ref, refFeeAmount);
                     earnedRefs[ref] = earnedRefs[ref] + refFeeAmount;
@@ -273,7 +277,7 @@ contract Gauge is ReentrancyGuard {
                 }
             }
             if (remainingRefReward > 0) {
-                address _mainRefFeeReceiver = IGaugeFactory(gaugeFactory)
+                address _mainRefFeeReceiver = IProtocolGovernance(gaugeFactory)
                     .mainRefFeeReceiver();
                 STABLE.safeTransfer(_mainRefFeeReceiver, remainingRefReward);
                 earnedRefs[_mainRefFeeReceiver] =
@@ -290,7 +294,7 @@ contract Gauge is ReentrancyGuard {
         onlyDistribution
         updateReward(address(0))
     {
-        STABLE.safeTransferFrom(DISTRIBUTION, address(this), reward);
+        STABLE.safeTransferFrom(gaugeFactory, address(this), reward);
         if (block.timestamp >= periodFinish) {
             rewardRate = reward / DURATION;
         } else {
@@ -334,15 +338,21 @@ contract Gauge is ReentrancyGuard {
         uint256 _referralFee,
         uint256[] memory _refLevelPercent
     ) public {
-        require((msg.sender == gaugeFactory), "!gaugeFactory");
+        require(
+            msg.sender == IProtocolGovernance(gaugeFactory).governance() ||
+                msg.sender == IProtocolGovernance(gaugeFactory).admin(),
+            "Pair: only factory's feeAmountOwner or admin"
+        );
         referralContract = _referralsContract;
         referralFee = _referralFee;
         refLevelPercent = _refLevelPercent;
+        emit UpdateReferral(referralContract, referralFee, refLevelPercent);
     }
 
     // Set whitelist for other receiver
     function setWhitelisted(address _receiver, bool _whitelist) public {
         whitelisted[msg.sender][_receiver] = _whitelist;
+        emit Whitelisted(msg.sender, _receiver);
     }
 
     event RewardAdded(uint256 reward);
@@ -359,4 +369,11 @@ contract Gauge is ReentrancyGuard {
         uint256 claimed0,
         uint256 claimed1
     );
+    event Whitelisted(address user, address whitelistedUser);
+    event UpdateReferral(
+        address referralContract,
+        uint256 referralFee,
+        uint256[] refLevelPercent
+    );
+    event Kick(address account);
 }
