@@ -13,14 +13,16 @@ pragma solidity =0.8.17;
 
 import "./SafeERC20.sol";
 import "./Math.sol";
-import "./Ownable.sol";
+import "./ReentrancyGuard.sol";
 import "./IReferrals.sol";
 import "./IGaugeFactory.sol";
+import "./IBribe.sol";
+import "./IProtocolGovernance.sol";
 
-contract Bribe is ReentrancyGuard, Ownable {
+contract Bribe is IBribe, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    uint256 public constant WEEK = 7 days; // rewards are released over 7 days
+    uint256 public constant WEEK = 1 weeks; // rewards are released over 7 days
     uint256 public firstBribeTimestamp;
 
     /* ========== STATE VARIABLES ========== */
@@ -47,7 +49,9 @@ contract Bribe is ReentrancyGuard, Ownable {
     // outputs the fee variables.
     uint256 public referralFee;
     address public referralContract;
-    uint256[] public refLevelPercent = [6000, 3000, 1000];
+    uint256[] public refLevelPercent = [60000, 30000, 10000];
+    uint256 internal divisor = 100000;
+
     // user -> reward token -> earned amount
     mapping(address => mapping(address => uint256)) public earnedRefs;
     mapping(address => mapping(address => bool)) public whitelisted;
@@ -56,16 +60,13 @@ contract Bribe is ReentrancyGuard, Ownable {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(
-        address _owner,
-        address _gaugeFactory,
-        address _bribeFactory
-    ) public Ownable(_owner) {
+    constructor(address _gaugeFactory, address _bribeFactory) public {
         gaugeFactory = _gaugeFactory;
         bribeFactory = _bribeFactory;
-        firstBribeTimestamp = IGaugeFactory(gaugeFactory).epoch();
-        referralContract = IGaugeFactory(gaugeFactory).baseReferralsContract();
-        referralFee = IGaugeFactory(gaugeFactory).baseReferralFee();
+        firstBribeTimestamp = IGaugeFactory(_gaugeFactory).epoch();
+        referralContract = IProtocolGovernance(_gaugeFactory)
+            .baseReferralsContract();
+        referralFee = IProtocolGovernance(_gaugeFactory).baseReferralFee();
     }
 
     /* ========== VIEWS ========== */
@@ -106,6 +107,8 @@ contract Bribe is ReentrancyGuard, Ownable {
         return _balances[_voter][_timestamp];
     }
 
+    // Calculates the total rewards earned by a user for a particular reward token
+    // If a user has not collected any rewards for 50 epochs (about 1 year), they are lost the rewards (epoch 51 => epoch 1 lost)
     function earned(address _voter, address _rewardToken)
         public
         view
@@ -151,21 +154,23 @@ contract Bribe is ReentrancyGuard, Ownable {
         }
     }
 
-    function rewardPerToken(address _rewardsToken, uint256 _timestmap)
+    // Calculates the reward per token for a given rewards token and timestamp
+    function rewardPerToken(address _rewardsToken, uint256 _timestamap)
         public
         view
         returns (uint256)
     {
-        if (_totalSupply[_timestmap] == 0) {
-            return rewardData[_rewardsToken][_timestmap].rewardsPerEpoch;
+        if (_totalSupply[_timestamap] == 0) {
+            return rewardData[_rewardsToken][_timestamap].rewardsPerEpoch;
         }
         return
-            (rewardData[_rewardsToken][_timestmap].rewardsPerEpoch * 1e18) /
-            _totalSupply[_timestmap];
+            (rewardData[_rewardsToken][_timestamap].rewardsPerEpoch * 1e18) /
+            _totalSupply[_timestamap];
     }
 
     //---------------------------
 
+    // GaugeFactory deposit Votingpower amount for voter
     function _deposit(uint256 amount, address _voter) external nonReentrant {
         require(amount > 0, "Cannot stake 0");
         require(msg.sender == gaugeFactory);
@@ -181,6 +186,7 @@ contract Bribe is ReentrancyGuard, Ownable {
         emit Staked(_voter, amount);
     }
 
+    // GaugeFactory withdraw Votingpower amount for voter
     function _withdraw(uint256 amount, address _voter) public nonReentrant {
         require(amount > 0, "Cannot withdraw 0");
         require(msg.sender == gaugeFactory);
@@ -194,6 +200,7 @@ contract Bribe is ReentrancyGuard, Ownable {
         }
     }
 
+    // depostit rewards in rewardToken for next epoch
     function notifyRewardAmount(address _rewardsToken, uint256 reward)
         external
         nonReentrant
@@ -206,7 +213,7 @@ contract Bribe is ReentrancyGuard, Ownable {
             reward
         );
 
-        uint256 _startTimestamp = getEpoch() + 1; //period points to the current distribute day. Bribes are distributed from next epoch in 7 days
+        uint256 _startTimestamp = getEpoch() + 1; // period points to the current distribute day. Bribes are distributed from next epoch in 7 days
         if (firstBribeTimestamp == 0) {
             firstBribeTimestamp = _startTimestamp;
         }
@@ -226,14 +233,17 @@ contract Bribe is ReentrancyGuard, Ownable {
         emit RewardAdded(_rewardsToken, reward, _startTimestamp);
     }
 
+    // Claim all your rewards
     function getReward() external {
         getRewardForOwnerToOtherOwner(msg.sender, msg.sender);
     }
 
+    // Give the owner all earned rewards
     function getRewardForOwner(address voter) external {
         getRewardForOwnerToOtherOwner(voter, voter);
     }
 
+    // Get the reward from a owner to a whistlistet address or self
     function getRewardForOwnerToOtherOwner(address _voter, address _receiver)
         public
         nonReentrant
@@ -253,7 +263,8 @@ contract Bribe is ReentrancyGuard, Ownable {
             reward = earned(_voter, _rewardToken);
 
             if (reward > 0) {
-                uint256 refReward = (reward * referralFee) / 10000;
+                uint256 _divisor = divisor;
+                uint256 refReward = (reward * referralFee) / _divisor;
                 uint256 remainingRefReward = refReward;
 
                 IERC20(_rewardToken).safeTransfer(
@@ -272,7 +283,7 @@ contract Bribe is ReentrancyGuard, Ownable {
                 while (x < refLevelPercent.length && refLevelPercent[x] > 0) {
                     if (ref != IReferrals(referralContract).membersList(0)) {
                         uint256 refFeeAmount = (refReward *
-                            refLevelPercent[x]) / 10000;
+                            refLevelPercent[x]) / _divisor;
                         remainingRefReward = remainingRefReward - refFeeAmount;
                         IERC20(_rewardToken).safeTransfer(ref, refFeeAmount);
                         earnedRefs[ref][_rewardToken] =
@@ -286,8 +297,9 @@ contract Bribe is ReentrancyGuard, Ownable {
                     }
                 }
                 if (remainingRefReward > 0) {
-                    address _mainRefFeeReceiver = IGaugeFactory(gaugeFactory)
-                        .mainRefFeeReceiver();
+                    address _mainRefFeeReceiver = IProtocolGovernance(
+                        gaugeFactory
+                    ).mainRefFeeReceiver();
                     IERC20(_rewardToken).safeTransfer(
                         _mainRefFeeReceiver,
                         remainingRefReward
@@ -311,7 +323,7 @@ contract Bribe is ReentrancyGuard, Ownable {
         address _voter,
         address _receiver,
         address[] memory tokens
-    ) public nonReentrant {
+    ) external nonReentrant {
         if (_voter != _receiver) {
             require(
                 _voter == msg.sender || whitelisted[_voter][_receiver] == true,
@@ -327,7 +339,8 @@ contract Bribe is ReentrancyGuard, Ownable {
             reward = earned(_voter, _rewardToken);
 
             if (reward > 0) {
-                uint256 refReward = (reward * referralFee) / 10000;
+                uint256 _divisor = divisor;
+                uint256 refReward = (reward * referralFee) / _divisor;
                 uint256 remainingRefReward = refReward;
 
                 IERC20(_rewardToken).safeTransfer(
@@ -346,7 +359,7 @@ contract Bribe is ReentrancyGuard, Ownable {
                 while (x < refLevelPercent.length && refLevelPercent[x] > 0) {
                     if (ref != IReferrals(referralContract).membersList(0)) {
                         uint256 refFeeAmount = (refReward *
-                            refLevelPercent[x]) / 10000;
+                            refLevelPercent[x]) / _divisor;
                         remainingRefReward = remainingRefReward - refFeeAmount;
                         IERC20(_rewardToken).safeTransfer(ref, refFeeAmount);
                         earnedRefs[ref][_rewardToken] =
@@ -360,8 +373,9 @@ contract Bribe is ReentrancyGuard, Ownable {
                     }
                 }
                 if (remainingRefReward > 0) {
-                    address _mainRefFeeReceiver = IGaugeFactory(gaugeFactory)
-                        .mainRefFeeReceiver();
+                    address _mainRefFeeReceiver = IProtocolGovernance(
+                        gaugeFactory
+                    ).mainRefFeeReceiver();
                     IERC20(_rewardToken).safeTransfer(
                         _mainRefFeeReceiver,
                         remainingRefReward
@@ -380,31 +394,40 @@ contract Bribe is ReentrancyGuard, Ownable {
         }
     }
 
+    // Set whitelist for other receiver in getRewardForOwnerToOtherOwner
+    function setWhitelisted(address _receiver, bool _whitlist) public {
+        whitelisted[msg.sender][_receiver] = _whitlist;
+        emit Whitelisted(msg.sender, _receiver);
+    }
+
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function recoverERC20(address tokenAddress, uint256 tokenAmount)
-        external
-        onlyOwner
-    {
+    // transfer a token out of the contract that is not a wanted token (airdrop tokens)
+    function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
+        require(
+            msg.sender == IProtocolGovernance(gaugeFactory).governance() ||
+                msg.sender == IProtocolGovernance(gaugeFactory).admin(),
+            "Pair: only factory's feeAmountOwner or admin"
+        );
         require(tokenAmount <= IERC20(tokenAddress).balanceOf(address(this)));
-        IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
+        require(!isRewardToken[tokenAddress], "Reward token not allowed");
+        IERC20(tokenAddress).safeTransfer(msg.sender, tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
     }
 
+    // add a token as bribe reward token
     function addRewardtoken(address _rewardsToken) external {
         require(
-            (msg.sender == owner || msg.sender == bribeFactory),
-            "addReward: permission is denied!"
+            msg.sender == bribeFactory ||
+                msg.sender == IProtocolGovernance(gaugeFactory).governance() ||
+                msg.sender == IProtocolGovernance(gaugeFactory).admin(),
+            "Pair: only factory's feeAmountOwner or admin"
         );
         require(!isRewardToken[_rewardsToken], "Reward token already exists");
         require(_rewardsToken != address(0));
         isRewardToken[_rewardsToken] = true;
         rewardTokens.push(_rewardsToken);
-    }
-
-    // Set whitelist for other receiver in getRewardForOwnerToOtherOwner
-    function setWhitelisted(address _receiver, bool _whitlist) public {
-        whitelisted[msg.sender][_receiver] = _whitlist;
+        emit AddRewardtoken(_rewardsToken);
     }
 
     /* ========== REFERRAL FUNCTIONS ========== */
@@ -414,11 +437,16 @@ contract Bribe is ReentrancyGuard, Ownable {
         address _referralsContract,
         uint256 _referralFee,
         uint256[] memory _refLevelPercent
-    ) public {
-        require((msg.sender == gaugeFactory), "!gaugeFactory");
+    ) external {
+        require(
+            msg.sender == IProtocolGovernance(gaugeFactory).governance() ||
+                msg.sender == IProtocolGovernance(gaugeFactory).admin(),
+            "Pair: only factory's feeAmountOwner or admin"
+        );
         referralContract = _referralsContract;
         referralFee = _referralFee;
         refLevelPercent = _refLevelPercent;
+        emit UpdateReferral(referralContract, referralFee, refLevelPercent);
     }
 
     /* ========== EVENTS ========== */
@@ -446,5 +474,12 @@ contract Bribe is ReentrancyGuard, Ownable {
         address indexed receiver,
         address indexed rewardsToken,
         uint256 reward
+    );
+    event AddRewardtoken(address token);
+    event Whitelisted(address user, address whitelistedUser);
+    event UpdateReferral(
+        address referralContract,
+        uint256 referralFee,
+        uint256[] refLevelPercent
     );
 }
