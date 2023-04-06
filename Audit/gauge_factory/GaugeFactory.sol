@@ -384,12 +384,6 @@ contract GaugeFactory is IGaugeFactory, ProtocolGovernance, ReentrancyGuard {
     event GaugeAdded(address tokenLP);
     event GaugeDeprecated(address tokenLP);
     event GaugeResurrected(address tokenLP);
-    event UpdateReferrals(
-        address Contract,
-        address referralsContract,
-        uint256 referralFee,
-        uint256[] refLevelPercent
-    );
     event UpdateMaxVotesToken(uint256 TokenID, uint256 maxVotesToken);
     event UpdatePokeDelay(uint256 pokeDelay);
     event UpdateVeProxy(address newProxy);
