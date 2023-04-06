@@ -30,7 +30,7 @@ let vLP1, vLP1Fees, vLP2, vLP2Fees;
 let sLP1, sLP1Fees, sLP2, sLP2Fees;
 let aLP1, aLP1Fees, aLP2, aLP2Fees;
 // tokens
-let SPIRIT, inSPIRIT, WETH, TK1, TK2, USDC, USD1, USD2;
+let STABLE, inSTABLE, WETH, TK1, TK2, USDC, USD1, USD2;
 
 describe("AMM Testing", function () {
   
@@ -73,7 +73,7 @@ describe("AMM Testing", function () {
         router = await ethers.getContractAt("BaseRouter01", routerContract.address);
         console.log("- Router Initialized"); 
 
-        // Set Spirit Maker of Factory
+        // Set Stable Maker of Factory
         // await pairFactory.setusdfiMaker(usdfiMaker.address);
         //await pairFactory.setAdmins(usdfiMaker.address, feeAmountOwner.address, admin.address);
         await pairFactory.setAdmins(usdfiMaker.address, user1.address, user1.address);
