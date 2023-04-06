@@ -108,7 +108,8 @@ contract Bribe is IBribe, ReentrancyGuard {
     }
 
     // Calculates the total rewards earned by a user for a particular reward token
-    // If a user has not collected any rewards for 50 epochs (about 1 year), they are lost the rewards (epoch 51 => epoch 1 lost)
+    // If a user has not collected any rewards for 50 epochs (about 1 year), they are lost the rewards
+    // We believe that it's not logical to assume that a user votes without claiming their rewards for 50 consecutive weeks.
     function earned(address _voter, address _rewardToken)
         public
         view
