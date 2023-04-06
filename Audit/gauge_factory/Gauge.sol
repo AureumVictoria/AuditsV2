@@ -172,6 +172,9 @@ contract Gauge is IGauge, ReentrancyGuard {
 
     // Your earned rewards (without referrals deduction)
     function earned(address account) public view returns (uint256) {
+        if (derivedSupply == 0) {
+            return rewards[account];
+        }
         return
             ((derivedBalances[account] *
                 (rewardPerToken() - userRewardPerTokenPaid[account])) / 1e18) +
@@ -295,14 +298,15 @@ contract Gauge is IGauge, ReentrancyGuard {
         updateReward(address(0))
     {
         STABLE.safeTransferFrom(gaugeFactory, address(this), reward);
-        if (block.timestamp >= periodFinish) {
-            rewardRate = reward / DURATION;
-        } else {
-            uint256 remaining = periodFinish - block.timestamp;
-            uint256 leftover = remaining * rewardRate;
-            rewardRate = (reward + leftover) / DURATION;
+        if (derivedSupply != 0) {
+            if (block.timestamp >= periodFinish) {
+                rewardRate = reward / DURATION;
+            } else {
+                uint256 remaining = periodFinish - block.timestamp;
+                uint256 leftover = remaining * rewardRate;
+                rewardRate = (reward + leftover) / DURATION;
+            }
         }
-
         // Ensure the provided reward amount is not more than the balance in the contract.
         // This keeps the reward rate in the right range, preventing overflows due to
         // very high values of rewardRate in the earned and rewardsPerToken functions;
