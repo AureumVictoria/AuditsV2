@@ -297,8 +297,8 @@ contract Gauge is IGauge, ReentrancyGuard {
         onlyDistribution
         updateReward(address(0))
     {
-        STABLE.safeTransferFrom(gaugeFactory, address(this), reward);
         if (derivedSupply != 0) {
+        STABLE.safeTransferFrom(gaugeFactory, address(this), reward);
             if (block.timestamp >= periodFinish) {
                 rewardRate = reward / DURATION;
             } else {
