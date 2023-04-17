@@ -107,8 +107,8 @@ contract Bribe is IBribe, ReentrancyGuard {
         return _balances[_voter][_timestamp];
     }
 
-    // Calculates the total rewards earned by a user for a particular reward token
-    // If a user has not collected any rewards for 50 epochs (about 1 year), they are lost the rewards
+    // Calculates the total rewards earned by a user for a particular reward token.
+    // If a user has not collected any rewards for 50 epochs (about 1 year), they are lost the upcoming rewards.
     // We believe that it's not logical to assume that a user votes without claiming their rewards for 50 consecutive weeks.
     function earned(address _voter, address _rewardToken)
         public
