@@ -27,7 +27,7 @@ contract GaugeFactory is IGaugeFactory, ProtocolGovernance, ReentrancyGuard {
     uint256 public totalWeight;
 
     // Time delays
-    uint256 public immutable delay = 1 weeks;
+    uint256 public constant delay = 1 weeks;
     uint256 public lastDistribute;
     mapping(address => uint256) public lastVote; // msg.sender => time of users last vote
     mapping(address => uint256) public nextPoke; // msg.sender => time of users next poke
