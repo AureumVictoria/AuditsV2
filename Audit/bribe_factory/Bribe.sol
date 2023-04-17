@@ -437,7 +437,7 @@ contract Bribe is IBribe, ReentrancyGuard {
     function updateReferral(
         address _referralsContract,
         uint256 _referralFee,
-        uint256[] memory _refLevelPercent
+        uint256[] calldata _refLevelPercent
     ) external {
         require(
             msg.sender == IProtocolGovernance(gaugeFactory).governance() ||
